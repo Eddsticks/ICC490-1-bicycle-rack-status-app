@@ -37,9 +37,9 @@ public class RackStatusPanel extends JPanel {
     private void initComponents() {
         // --- 1. Título del Panel ---
         panelTitleLabel = new JLabel("Estado del Rack: " + DEFAULT_RACK_ID, SwingConstants.CENTER);
-        panelTitleLabel.setFont(new Font("Arial", Font.BOLD, 28)); // Fuente más grande para el título
-        panelTitleLabel.setForeground(AppColors.DARK_TEXT); // Color de texto blanco
-        add(panelTitleLabel, BorderLayout.NORTH); // Añadir el título en la parte superior
+        panelTitleLabel.setFont(new Font("Arial", Font.BOLD, 28));
+        panelTitleLabel.setForeground(AppColors.DARK_TEXT);
+        add(panelTitleLabel, BorderLayout.NORTH);
 
         // --- 2. Contenedor para los Ganchos (GridLayout) ---
         JPanel hooksGridPanel = new JPanel();
