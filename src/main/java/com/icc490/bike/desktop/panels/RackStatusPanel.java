@@ -36,7 +36,7 @@ public class RackStatusPanel extends JPanel {
 
     private void initComponents() {
         // --- 1. Título del Panel ---
-        panelTitleLabel = new JLabel("Estado del Rack: " + DEFAULT_RACK_ID, SwingConstants.CENTER);
+        panelTitleLabel = new JLabel("Rack " + DEFAULT_RACK_ID, SwingConstants.CENTER);
         panelTitleLabel.setFont(new Font("Arial", Font.BOLD, 28));
         panelTitleLabel.setForeground(AppColors.DARK_TEXT);
         add(panelTitleLabel, BorderLayout.NORTH);
