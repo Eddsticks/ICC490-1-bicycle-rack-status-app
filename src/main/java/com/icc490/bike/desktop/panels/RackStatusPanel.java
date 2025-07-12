@@ -1,9 +1,9 @@
 package com.icc490.bike.desktop.panels;
 
 import com.icc490.bike.desktop.ApiClient;
+import com.icc490.bike.desktop.RackStatusApp;
 import com.icc490.bike.desktop.gui.utils.AppColors;
 import com.icc490.bike.desktop.model.Record;
-import com.icc490.bike.desktop.model.Rack;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -16,17 +16,22 @@ import java.util.concurrent.CompletableFuture;
 public class RackStatusPanel extends JPanel {
 
     private ApiClient apiClient;
+    private RackStatusApp parentApp;
     private JPanel[] hookPanels;
     private JLabel[] hookLabels;
     private JLabel panelTitleLabel;
-    private static final long DEFAULT_RACK_ID = 1L;
+    private JButton backButton;
+    private long currentRackId;
+
     private static final int TOTAL_HOOKS = 4;
 
-    public RackStatusPanel(ApiClient apiClient) {
+    public RackStatusPanel(ApiClient apiClient, RackStatusApp parentApp) {
         this.apiClient = apiClient;
+        this.parentApp = parentApp;
         setLayout(new BorderLayout(15, 15));
         setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
         setBackground(AppColors.SECONDARY_BLUE);
+
         hookPanels = new JPanel[TOTAL_HOOKS];
         hookLabels = new JLabel[TOTAL_HOOKS];
 
@@ -34,12 +39,34 @@ public class RackStatusPanel extends JPanel {
         startStatusRefreshTimer();
     }
 
+    public void setRackId(long rackId) {
+        this.currentRackId = rackId;
+        panelTitleLabel.setText("Estado del Rack: " + currentRackId);
+    }
+
     private void initComponents() {
-        // --- 1. Título del Panel ---
-        panelTitleLabel = new JLabel("Rack " + DEFAULT_RACK_ID, SwingConstants.CENTER);
+
+        // --- 1. Panel Superior (Título y Botón de Regreso) ---
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setOpaque(false);
+
+        panelTitleLabel = new JLabel("Estado del Rack: ", SwingConstants.CENTER);
         panelTitleLabel.setFont(new Font("Arial", Font.BOLD, 28));
-        panelTitleLabel.setForeground(AppColors.DARK_TEXT);
-        add(panelTitleLabel, BorderLayout.NORTH);
+        panelTitleLabel.setForeground(AppColors.WHITE_TEXT);
+        topPanel.add(panelTitleLabel, BorderLayout.CENTER);
+
+        backButton = new JButton("Volver al Menú");
+        backButton.setFont(new Font("Arial", Font.PLAIN, 16));
+        backButton.setBackground(AppColors.ACCENT_RED);
+        backButton.setForeground(AppColors.WHITE_TEXT);
+        backButton.addActionListener(e -> parentApp.showMainMenu());
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        buttonPanel.setOpaque(false);
+        buttonPanel.add(backButton);
+        topPanel.add(buttonPanel, BorderLayout.WEST);
+
+        add(topPanel, BorderLayout.NORTH);
 
         // --- 2. Contenedor para los Ganchos (GridLayout) ---
         JPanel hooksGridPanel = new JPanel();
@@ -68,13 +95,13 @@ public class RackStatusPanel extends JPanel {
         add(hooksGridPanel, BorderLayout.CENTER);
     }
 
+
     private void startStatusRefreshTimer() {
         Timer timer = new Timer(5000, e -> refreshRackStatus());
         timer.start();
-        refreshRackStatus();
     }
 
-    private void refreshRackStatus() {
+    public void refreshRackStatus() {
         apiClient.getAllRecords().thenAccept(records -> {
             SwingUtilities.invokeLater(() -> {
                 updateHookColors(records);
@@ -102,7 +129,8 @@ public class RackStatusPanel extends JPanel {
 
         if (records != null) {
             for (Record record : records) {
-                if (record.getHook() != null && record.getCheckOut() == null) {
+                if (record.getRack() != null && record.getRack().getId().equals(currentRackId) &&
+                        record.getHook() != null && record.getCheckOut() == null) {
                     if (record.getHook() >= 1 && record.getHook() <= TOTAL_HOOKS) {
                         occupiedHooks.put(record.getHook(), true);
                     }
