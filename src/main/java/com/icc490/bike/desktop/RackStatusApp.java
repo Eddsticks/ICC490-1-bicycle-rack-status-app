@@ -1,6 +1,5 @@
 package com.icc490.bike.desktop;
 
-import com.icc490.bike.desktop.gui.utils.AppColors;
 import com.icc490.bike.desktop.panels.RackStatusPanel;
 import com.icc490.bike.desktop.panels.MainMenuPanel;
 

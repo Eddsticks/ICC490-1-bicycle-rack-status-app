@@ -3,7 +3,6 @@ package com.icc490.bike.desktop;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
 import com.icc490.bike.desktop.model.Record;
 import com.icc490.bike.desktop.model.RecordRequest;
 import com.icc490.bike.desktop.model.RecordPageResponse;
@@ -32,6 +31,19 @@ public class ApiClient {
         this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
+    public ApiClient(HttpClient httpClient, ObjectMapper objectMapper) {
+        this.httpClient = httpClient;
+        this.objectMapper = objectMapper;
+    }
+
+    protected HttpClient getHttpClient() {
+        return httpClient;
+    }
+
+    protected ObjectMapper getObjectMapper() {
+        return objectMapper;
+    }
+
     public CompletableFuture<List<Record>> getAllRecords() {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + "/api/records"))
@@ -39,82 +51,66 @@ public class ApiClient {
                 .GET()
                 .build();
 
-        return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+        return getHttpClient().sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
                     if (response.statusCode() == 200) {
                         try {
-                            RecordPageResponse pageResponse = objectMapper.readValue(response.body(), RecordPageResponse.class);
+                            RecordPageResponse pageResponse = getObjectMapper().readValue(response.body(), RecordPageResponse.class);
                             return pageResponse.getRecords();
                         } catch (Exception e) {
-                            System.err.println("Error al deserializar la respuesta de registros: " + e.getMessage());
-                            e.printStackTrace();
                             throw new RuntimeException("Error de deserialización de registros", e);
                         }
                     } else {
                         String errorBody = response.body();
-                        System.err.println("Error al obtener registros de la API: " + response.statusCode() + " - " + errorBody);
                         try {
-                            ApiErrorResponse apiError = objectMapper.readValue(errorBody, ApiErrorResponse.class);
-                            throw new ApiException("Error de API al obtener registros: " + (apiError.getError() != null ? apiError.getError().toString() : "Unknown"), apiError);
+                            ApiErrorResponse apiError = getObjectMapper().readValue(errorBody, ApiErrorResponse.class);
+                            throw new ApiException("Error de API al obtener registros", apiError);
                         } catch (Exception ex) {
-                            throw new ApiException("Error desconocido al obtener registros: " + errorBody, ex, null);
+                            throw new ApiException("Error desconocido al obtener registros", ex, null);
                         }
                     }
                 })
                 .exceptionally(ex -> {
-                    Throwable actualCause = (ex instanceof CompletionException || ex instanceof ExecutionException) ? ex.getCause() : ex;
-                    if (actualCause instanceof ApiException) {
-                        throw (ApiException) actualCause;
-                    }
-                    System.err.println("Error de conexión/inesperado al obtener registros: " + ex.getMessage());
-                    ex.printStackTrace();
-                    throw new RuntimeException("Error de conexión/inesperado al obtener registros: " + ex.getMessage(), ex);
+                    Throwable cause = (ex instanceof CompletionException || ex instanceof ExecutionException) ? ex.getCause() : ex;
+                    if (cause instanceof ApiException) throw (ApiException) cause;
+                    throw new RuntimeException("Error de conexión/inesperado al obtener registros", ex);
                 });
     }
 
     public CompletableFuture<Record> createRecord(RecordRequest recordRequest) {
         try {
-            String requestBody = objectMapper.writeValueAsString(recordRequest);
+            String requestBody = getObjectMapper().writeValueAsString(recordRequest);
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(BASE_URL + "/api/records/check-in"))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .build();
 
-            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+            return getHttpClient().sendAsync(request, HttpResponse.BodyHandlers.ofString())
                     .thenApply(response -> {
                         if (response.statusCode() == 200) {
                             try {
-                                return objectMapper.readValue(response.body(), Record.class);
+                                return getObjectMapper().readValue(response.body(), Record.class);
                             } catch (Exception e) {
-                                System.err.println("Error al deserializar el registro creado: " + e.getMessage());
-                                e.printStackTrace();
                                 throw new RuntimeException("Error de deserialización de registro creado", e);
                             }
                         } else {
                             String errorBody = response.body();
-                            System.err.println("Error al crear registro en la API: " + response.statusCode() + " - " + errorBody);
                             try {
-                                ApiErrorResponse apiError = objectMapper.readValue(errorBody, ApiErrorResponse.class);
-                                throw new ApiException("Error de API al crear registro: " + (apiError.getError() != null ? apiError.getError().toString() : "Unknown"), apiError);
+                                ApiErrorResponse apiError = getObjectMapper().readValue(errorBody, ApiErrorResponse.class);
+                                throw new ApiException("Error de API al crear registro", apiError);
                             } catch (Exception ex) {
-                                throw new ApiException("Error desconocido al crear registro: " + errorBody, ex, null);
+                                throw new ApiException("Error desconocido al crear registro", ex, null);
                             }
                         }
                     })
                     .exceptionally(ex -> {
-                        Throwable actualCause = (ex instanceof CompletionException || ex instanceof ExecutionException) ? ex.getCause() : ex;
-                        if (actualCause instanceof ApiException) {
-                            throw (ApiException) actualCause;
-                        }
-                        System.err.println("Error de conexión/inesperado al crear registro: " + ex.getMessage());
-                        ex.printStackTrace();
-                        throw new RuntimeException("Error de conexión/inesperado al crear registro: " + ex.getMessage(), ex);
+                        Throwable cause = (ex instanceof CompletionException || ex instanceof ExecutionException) ? ex.getCause() : ex;
+                        if (cause instanceof ApiException) throw (ApiException) cause;
+                        throw new RuntimeException("Error de conexión/inesperado al crear registro", ex);
                     });
         } catch (Exception e) {
-            System.err.println("Error al preparar la solicitud de creación de registro: " + e.getMessage());
-            e.printStackTrace();
-            return CompletableFuture.failedFuture(new RuntimeException("Error al preparar la solicitud de creación de registro", e));
+            return CompletableFuture.completedFuture(null);
         }
     }
 
@@ -125,35 +121,28 @@ public class ApiClient {
                 .PUT(HttpRequest.BodyPublishers.noBody())
                 .build();
 
-        return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+        return getHttpClient().sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
                     if (response.statusCode() == 200) {
                         try {
-                            return objectMapper.readValue(response.body(), Record.class);
+                            return getObjectMapper().readValue(response.body(), Record.class);
                         } catch (Exception e) {
-                            System.err.println("Error al deserializar el registro devuelto: " + e.getMessage());
-                            e.printStackTrace();
                             throw new RuntimeException("Error de deserialización de registro devuelto", e);
                         }
                     } else {
                         String errorBody = response.body();
-                        System.err.println("Error al devolver registro en la API: " + response.statusCode() + " - " + errorBody);
                         try {
-                            ApiErrorResponse apiError = objectMapper.readValue(errorBody, ApiErrorResponse.class);
-                            throw new ApiException("Error de API al devolver registro: " + (apiError.getError() != null ? apiError.getError().toString() : "Unknown"), apiError);
+                            ApiErrorResponse apiError = getObjectMapper().readValue(errorBody, ApiErrorResponse.class);
+                            throw new ApiException("Error de API al devolver registro", apiError);
                         } catch (Exception ex) {
-                            throw new ApiException("Error desconocido al devolver registro: " + errorBody, ex, null);
+                            throw new ApiException("Error desconocido al devolver registro", ex, null);
                         }
                     }
                 })
                 .exceptionally(ex -> {
-                    Throwable actualCause = (ex instanceof CompletionException || ex instanceof ExecutionException) ? ex.getCause() : ex;
-                    if (actualCause instanceof ApiException) {
-                        throw (ApiException) actualCause;
-                    }
-                    System.err.println("Error de conexión/inesperado al devolver registro: " + ex.getMessage());
-                    ex.printStackTrace();
-                    throw new RuntimeException("Error de conexión/inesperado al devolver registro: " + ex.getMessage(), ex);
+                    Throwable cause = (ex instanceof CompletionException || ex instanceof ExecutionException) ? ex.getCause() : ex;
+                    if (cause instanceof ApiException) throw (ApiException) cause;
+                    throw new RuntimeException("Error de conexión/inesperado al devolver registro", ex);
                 });
     }
 }
