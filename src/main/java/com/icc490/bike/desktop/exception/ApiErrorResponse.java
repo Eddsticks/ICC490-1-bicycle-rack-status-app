@@ -3,9 +3,6 @@ package com.icc490.bike.desktop.exception;
 import java.time.Instant;
 import java.util.List;
 
-/**
- * Clase para mapear las respuestas de error de la API.
- */
 public class ApiErrorResponse {
     private Instant timestamp;
     private int status;
@@ -20,7 +17,7 @@ public class ApiErrorResponse {
         this.error = error;
     }
 
-    // Getters
+    //Getters
     public Instant getTimestamp() {
         return timestamp;
     }
@@ -33,7 +30,7 @@ public class ApiErrorResponse {
         return error;
     }
 
-    // Setters
+    //Setters
     public void setTimestamp(Instant timestamp) {
         this.timestamp = timestamp;
     }
@@ -49,10 +46,12 @@ public class ApiErrorResponse {
     @Override
     public String toString() {
         String errorContent;
-        if (error instanceof List) {
+        if (error == null) {
+            errorContent = "null";
+        } else if (error instanceof List) {
             errorContent = "[\"" + String.join("\", \"", (List<String>) error) + "\"]";
         } else {
-            errorContent = "\"" + error + "\"";
+            errorContent = "\"" + error.toString() + "\"";
         }
         return "ApiErrorResponse{" +
                 "timestamp=" + timestamp +
